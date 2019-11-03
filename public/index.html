@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf8">
+  <link rel="stylesheet" type="text/css" href="css/eeschema.css">
+
+  <title>KiCad Tools</title>
+</head>
+<body>
+  <main>
+    <h1>KiCad tools</h1>
+    <p>Here are some tools to make tedious KiCad jobs easier.</p>
+    <section id="drop_target">
+      <p>Drop a KiCad schematic file here.</p>
+    </section>
+
+    <section id="components" class="gone">
+      <h2>Components</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Ref</th>
+            <th>Value</th>
+            <th>Name</th>
+            <th>Footprint</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </section>
+  </main>
+  <section id="status_line">Ready.</section>
+  <template id="component_row">
+    <tr>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </template>
+  <script src="js/schematic.js"></script>
+  <script src="js/eeschema.js"></script>
+</body>
+</html>

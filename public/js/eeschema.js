@@ -15,7 +15,7 @@
       schematic = new Schematic(text);
       dropTarget.classList.add("gone");
     } catch (ex) {
-      writeError(ex);
+      writeErrorStatus(ex);
     }
 
     var sortedComponents = schematic.components
@@ -61,8 +61,9 @@
   }
 
   function writeErrorStatus(msg) {
-    statusLine.classList.remove("error");
-    statusLine.innterText = msg;
+    console.error(msg);
+    statusLine.classList.add("error");
+    statusLine.innerText = msg;
   }
 
   function onDragLeave() {
@@ -88,7 +89,7 @@
     }
 
     reader.onerror = function (err) {
-      writeError("Failed to read dropped file");
+      writeErrorStatus("Failed to read dropped file");
     }
 
     reader.readAsText(f);

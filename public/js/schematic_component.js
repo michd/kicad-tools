@@ -4,6 +4,8 @@
     this.uLine = null;
     this.pLine = null;
     this.name = null;
+    this.componentLib = null;
+    this.componentName = null;
     this.reference = null;
     this.refLetters = null;
     this.refNumber = null;
@@ -50,14 +52,61 @@
     return val.substr(1, val.length - 2);
   }
 
+  // Takes apart a component's reference into the letter portion and the
+  // numeric portion, accounting for references that may still end in '?'.
+  function processComponentReference(comp) {
+    var parts = comp.reference.match(/([A-Za-z]+)?(\d+|\?+)?/);
+    comp.refLetters = parts[1] || null;
+    comp.refNumber = parts[2] || null;
+
+    if (comp.refNumber !== null) {
+      comp.refNumber = parseInt(comp.refNumber, 10);
+
+      // If we couldn't parse it, we don't have a number as part of the ref;
+      // standardise to null.
+      if (isNaN(comp.refNumber)) {
+        comp.refNumber = null;
+      }
+    }
+  }
+
+  // Processes a single schematic file component line, assigning the data
+  // contained therein to relevant component fields
+  function processComponentLine(comp, line) {
+    var splitLine = line.split(' ');
+
+    switch (line[0]) {
+      case 'L':
+        comp.lLine = line;
+        comp.name = splitLine[1];
+        comp.componentLib = comp.name.split(':')[0];
+        comp.componentName = comp.name.split(':')[1];
+        comp.reference = splitLine[2];
+        processComponentReference(comp);
+        break;
+
+      // TODO: take apart the U line to grab the units, used for analysis.
+      case 'U':
+        comp.uLine = line;
+        break;
+
+      case 'P':
+        comp.pLine = line;
+        break;
+
+      case 'F':
+        comp.fieldLines.push(line);
+        break;
+    }
+  }
+
   // Reads the `fieldLines` and extracts data we're interested in from them
-  SchematicComponent.prototype.parseFields = function () {
+  function processComponentFields(comp) {
     var i = 0,
-        fieldCount = this.fieldLines.length,
-        splitLine;
+        fieldCount = comp.fieldLines.length;
 
     for (i = 0; i < fieldCount; i++) {
-      this.fieldProps[i] = getFieldProps(this.fieldLines[i]);
+      comp.fieldProps[i] = getFieldProps(comp.fieldLines[i]);
 
       (function (field) {
         // Extract information we know of from fieldLines for easier, named
@@ -69,29 +118,34 @@
             break;
 
           case '1': // value
-            this.value = removeQuotes(field.text);
+            comp.value = removeQuotes(field.text);
             break;
 
           case '2': // footprint
-            this.footprint = removeQuotes(field.text);
-            this.footprintLib = this.footprint.split(':')[0];
-            this.footprintName = this.footprint.split(':')[1];
+            comp.footprint = removeQuotes(field.text);
+            comp.footprintLib = comp.footprint.split(':')[0];
+            comp.footprintName = comp.footprint.split(':')[1];
             break;
         }
-      }.bind(this)(this.fieldProps[i])); // Closure
-    } // for
-  };
+      }(comp.fieldProps[i]));
+    }
+  }
+
+  // Power flags start with # and aren't really components we care about,
+  // so this function filters them out.
+  function isIrrelevantComponent(component) {
+    return component.reference[0] === '#';
+  }
 
   // Read a component's data from an array of plaintext lines from .sch file
   // Will return a SchematicComponent instance, or throw if unable.
   // If the component is a "Power" component, that is a power flag like
   // Vcc or whatnot, will return `null` instead.
-  // TODO split up this function, it's too long.
   SchematicComponent.FromLines = function (lines) {
-    var i = 0,
-        len,
+    var i, lineCount,
         comp;
 
+    // Verify data type coming in before we attempt processing
     if (typeof lines === "undefined" || typeof lines.length === "undefined") {
       throw "SchematicComponent.FromLines: invalid lines; not array.";
     }
@@ -104,62 +158,23 @@
       throw "SchematicComponent.FromLines: does not start with '$Comp'";
     }
 
-    len = lines.length;
+    lineCount = lines.length;
     comp = new SchematicComponent();
 
-    while (i < len) {
-      (function () {
-        var splitLine = lines[i].split(' ');
+    for (i = 0; i < lineCount; i++) {
+      processComponentLine(comp, lines[i]);
+    }
 
-        switch (lines[i][0]) {
-          case 'L':
-            comp.lLine = lines[i];
-            comp.name = splitLine[1];
-            (function () {
-              var parts = splitLine[2].match(/([A-|a-z]+)?(\d+|\?+)?/);
-              comp.reference = splitLine[2];
-              comp.refLetters = parts[1] || null;
-              comp.refNumber = parts[2] || null;
+    if (isIrrelevantComponent(comp)) {
+      return null;
+    }
 
-              if (comp.refNumber !== null) {
-                comp.refNumber = parseInt(comp.refNumber, 10);
-                if (isNaN(comp.refNumber)) {
-                  comp.refNumber = null;
-                }
-              }
-            }());
-
-            break;
-
-          // TODO: take apart the U line to grab the units, used for analysis.
-          case 'U':
-            comp.uLine = lines[i];
-            break;
-
-          case 'P':
-            comp.pLine = lines[i];
-            break;
-
-          case 'F':
-            comp.fieldLines.push(lines[i]);
-            break;
-        } // switch
-      }()); // closure
-
-      comp.parseFields();
-
-      i++;
-    } // while
+    processComponentFields(comp);
 
     if (lines[i - 1] !== "$EndComp") {
       console.warn(
         "SchematicComponent.FromLines: Last line wasn't '$EndComp' but " +
         lines[i - 1]);
-    }
-
-    // Power icon or power flag, not interested.
-    if (comp.reference[0] === '#') {
-      return null;
     }
 
     return comp;
@@ -173,40 +188,15 @@
     // Closure in which comparing options can be stored, to be passed to
     // MakeCompareFunction as arguments
 
-    var compare = function (first, second) {
-
-      if (first.name < second.name) {
-        return -1;
-      }
-
-      if (first.name > second.name) {
-        return 1;
-      }
-
-      if (first.refLetters < second.refLetters) {
-        return -1;
-      }
-
-      if (first.refLetters > second.refLetters) {
-        return 1;
-      }
-
-      if (first.refNumber < second.refNumber) {
-        return -1;
-      }
-
-      if (first.refNumber > second.refNumber) {
-        return 1;
-      }
-
-      if (first.value < second.value) {
-        return -1;
-      }
-
-      if (first.value > second.value) {
-        return 1;
-      }
-
+    var compare = function (a, b) {
+      if (a.name < b.name) return -1;
+      if (a.name > b.name) return 1;
+      if (a.refLetters < b.refLetters) return -1;
+      if (a.refLetters > b.refLetters) return 1;
+      if (a.refNumber < b.refNumber) return -1;
+      if (a.refNumber > b.refNumber) return 1;
+      if (a.value < b.value) return -1;
+      if (a.value > b.value) return 1;
 
       return 0;
     };

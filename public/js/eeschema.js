@@ -47,11 +47,10 @@
     var cells = row.querySelectorAll("td");
     cells[0].textContent = component.reference;
     cells[1].textContent = component.value;
-    cells[2].textContent = component.name;
+    cells[2].textContent = component.componentName;
     cells[3].textContent = component.footprintName;
     return row;
   }
-
 
   // --------------------------------------------------------------------------
 
@@ -72,7 +71,6 @@
 
   dropTarget.addEventListener("dragover", function (ev) {
     ev.preventDefault();
-    console.log("dragover");
     dropTarget.classList.add("dragover");
   });
 
@@ -98,8 +96,6 @@
 
   dropTarget.addEventListener("drop", function (e) {
     e.stopPropagation();
-    e.preventDefault();
-    console.log("drop.", e.dataTransfer.files.length);
     e.preventDefault();
     readFile(e.dataTransfer.files[0]);
     return false;

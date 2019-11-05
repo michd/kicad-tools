@@ -1,10 +1,4 @@
 (function (global, SchematicComponent) {
-
-  // TODO: add in a "namespace" file as the first file, setting just this up.
-  if (typeof global.EESCHEMA === "undefined") {
-    global.EESCHEMA = {};
-  }
-
   // TODO: analze components:
   // - Combine components with same reference and U n field (unit number within
   //   component)

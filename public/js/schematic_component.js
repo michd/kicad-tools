@@ -13,9 +13,15 @@
     this.footprint = null;
     this.footprintLib = null;
     this.footprintName = null;
+    this.unitNumber = null;
+    this.unitTimestamp = null;
     this.fieldLines = [];
     this.fieldProps = [];
   };
+
+  SchematicComponent.prototype.hasDesignator = function () {
+    return this.refNumber !== null;
+  }
 
   // Parse a single field line into it components
   // `line` is a raw line of text from the .sch file, from within a component,
@@ -85,9 +91,10 @@
         processComponentReference(comp);
         break;
 
-      // TODO: take apart the U line to grab the units, used for analysis.
       case 'U':
         comp.uLine = line;
+        comp.unitNumber = comp.uLine.split(' ')[1];
+        comp.unitTimestamp = comp.uLine.split(' ')[3];
         break;
 
       case 'P':

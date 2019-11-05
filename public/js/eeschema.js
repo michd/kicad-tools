@@ -18,8 +18,7 @@
       writeErrorStatus(ex);
     }
 
-    var sortedComponents = schematic.components
-          .slice()
+    var sortedComponents = schematic.getDistinctComponents()
           .sort(SchematicComponent.MakeCompareFunction());
 
     populateTable(sortedComponents);

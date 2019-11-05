@@ -11,6 +11,9 @@
 
     this.components = [];
 
+    // TODO: verify file header (make sure it starts in
+    // "EESchema Schematic File Version \d"), throwing otherwise
+
     getComponentsFromLines();
 
     console.log(
@@ -76,6 +79,48 @@
       } // while
     } // function
   }; // Schematic
+
+  // Returns true if function testFunc evaluates to true given any element in
+  // array arr.
+  function any(arr, testFunc) {
+    var i,
+        len = arr.length;
+
+    for (i = 0; i < len; i++) {
+      if (testFunc(arr[i])) return true;
+    }
+
+    return false;
+  }
+
+  // Returns all the distinct components, that is, filtering out duplicate
+  // components for different units within the same device
+  // e.g. opamps, logic gates, ...
+  Schematic.prototype.getDistinctComponents = function () {
+    var filteredComponents = [],
+        i,
+        curComp,
+        len = this.components.length;
+
+    function componentMatches(a, b) {
+      if (!a.hasDesignator() || !b.hasDesignator()) {
+        return false;
+      }
+
+      return a.reference === b.reference && a.unitNumber !== b.unitNumber;
+    }
+
+    for (i = 0; i < len; i++) {
+      curComp = this.components[i];
+
+      if (!any(filteredComponents,
+               function (comp) { return componentMatches(comp, curComp); })) {
+        filteredComponents.push(curComp);
+      }
+    }
+
+    return filteredComponents;
+  };
 
   global.EESCHEMA.Schematic = Schematic;
 }(window, window.EESCHEMA.SchematicComponent));

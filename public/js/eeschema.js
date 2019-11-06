@@ -3,6 +3,7 @@
       Schematic = global.EESCHEMA.Schematic;
 
   var dropTarget = document.querySelector("#drop_target");
+  var fileInput = dropTarget.querySelector("input[type=file]");
   var componentsSection = document.querySelector("#components");
   var componentsTableBody = componentsSection.querySelector("tbody");
   var statusLine = document.querySelector("#status_line");
@@ -98,6 +99,13 @@
     e.preventDefault();
     readFile(e.dataTransfer.files[0]);
     return false;
+  });
+
+  fileInput.addEventListener("change", function (e) {
+    e.stopPropagation();
+    e.preventDefault();
+    if (fileInput.value === "") return;
+    readFile(fileInput.files[0]);
   });
 
 }(window));

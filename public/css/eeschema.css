@@ -20,6 +20,10 @@ main {
   display: none;
 }
 
+section {
+  margin-bottom: 2em;
+}
+
 #drop_target {
   position: relative;
   border: dashed 3px #777;

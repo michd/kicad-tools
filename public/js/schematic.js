@@ -8,6 +8,7 @@
   var Schematic = function(initText) {
     var originalLines = initText.match(/[^\r\n]+/g);
     var self = this; // Yeah binding and all. Or just, this one.
+    this.originalText = initText;
 
     this.components = [];
 
@@ -120,6 +121,15 @@
     }
 
     return filteredComponents;
+  };
+
+  // Builds a string to be served as a schematic file
+  // TODO: actually regenerate the the schematic from dynamic data
+  // rather than re-assembling original lines.
+  // Current implementation is just to establish saving a file from the page
+  // works as expected.
+  Schematic.prototype.generateFile = function () {
+    return this.originalText;
   };
 
   global.EESCHEMA.Schematic = Schematic;

@@ -5,6 +5,8 @@
   var dropTarget = document.querySelector("#drop_target");
   var fileInput = dropTarget.querySelector("input[type=file]");
   var componentsSection = document.querySelector("#components");
+  var actionsSection = document.querySelector("#actions");
+  var saveButton = document.querySelector("#save_schematic_button");
   var componentsTableBody = componentsSection.querySelector("tbody");
   var statusLine = document.querySelector("#status_line");
   var schematic;
@@ -24,6 +26,7 @@
 
     populateTable(sortedComponents);
     componentsSection.classList.remove("gone");
+    actionsSection.classList.remove("gone");
   }
 
   function populateTable(components) {
@@ -106,6 +109,25 @@
     e.preventDefault();
     if (fileInput.value === "") return;
     readFile(fileInput.files[0]);
+  });
+
+  // On clicking save button, start a download a plaintext .sch file
+  // This is a bit hacky, works by creating an <a> element with a href
+  // containing a data uri with the full text of the file, with the download
+  // attribute.
+  // Seen at
+  // https://ourcodeworld.com/articles/read/189/how-to-create-a-file-and-generate-a-download-with-javascript-in-the-browser-without-a-server
+  saveButton.addEventListener("click", function (e) {
+    var a = document.createElement("a");
+    a.setAttribute(
+      "href",
+      "data:text/plain;charset=utf-8," 
+        + encodeURIComponent(schematic.generateFile()));
+    a.setAttribute("download", "schematic.sch"); // TODO get orig filename?
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   });
 
 }(window));

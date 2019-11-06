@@ -17,6 +17,7 @@
     this.unitTimestamp = null;
     this.fieldLines = [];
     this.fieldProps = [];
+    this.hasProblem = false;
   };
 
   SchematicComponent.prototype.hasDesignator = function () {
@@ -109,33 +110,28 @@
 
   // Reads the `fieldLines` and extracts data we're interested in from them
   function processComponentFields(comp) {
-    var i = 0,
-        fieldCount = comp.fieldLines.length;
+    comp.fieldProps = comp.fieldLines.map(getFieldProps);
 
-    for (i = 0; i < fieldCount; i++) {
-      comp.fieldProps[i] = getFieldProps(comp.fieldLines[i]);
+    comp.fieldProps.forEach(function(field) {
+      // Extract information we know of from fieldLines for easier, named
+      // access.
+      switch (field.n) {
+        case '0': // reference
+          // Nothing to do, we already got this elsewhere.
+          // Case left in for documentation purposes.
+          break;
 
-      (function (field) {
-        // Extract information we know of from fieldLines for easier, named
-        // access.
-        switch (field.n) {
-          case '0': // reference
-            // Nothing to do, we already got this elsewhere.
-            // Case left in for documentation purposes.
-            break;
+        case '1': // value
+          comp.value = removeQuotes(field.text);
+          break;
 
-          case '1': // value
-            comp.value = removeQuotes(field.text);
-            break;
-
-          case '2': // footprint
-            comp.footprint = removeQuotes(field.text);
-            comp.footprintLib = comp.footprint.split(':')[0];
-            comp.footprintName = comp.footprint.split(':')[1];
-            break;
-        }
-      }(comp.fieldProps[i]));
-    }
+        case '2': // footprint
+          comp.footprint = removeQuotes(field.text);
+          comp.footprintLib = comp.footprint.split(':')[0];
+          comp.footprintName = comp.footprint.split(':')[1];
+          break;
+      }
+    });
   }
 
   // Power flags start with # and aren't really components we care about,
@@ -149,8 +145,7 @@
   // If the component is a "Power" component, that is a power flag like
   // Vcc or whatnot, will return `null` instead.
   SchematicComponent.FromLines = function (lines) {
-    var i, lineCount,
-        comp;
+    var comp;
 
     // Verify data type coming in before we attempt processing
     if (typeof lines === "undefined" || typeof lines.length === "undefined") {
@@ -165,12 +160,11 @@
       throw "SchematicComponent.FromLines: does not start with '$Comp'";
     }
 
-    lineCount = lines.length;
     comp = new SchematicComponent();
 
-    for (i = 0; i < lineCount; i++) {
-      processComponentLine(comp, lines[i]);
-    }
+    lines.forEach(function (line) {
+      processComponentLine(comp, line);
+    });
 
     if (isIrrelevantComponent(comp)) {
       return null;
@@ -178,10 +172,10 @@
 
     processComponentFields(comp);
 
-    if (lines[i - 1] !== "$EndComp") {
+    if (lines[lines.length - 1] !== "$EndComp") {
       console.warn(
         "SchematicComponent.FromLines: Last line wasn't '$EndComp' but " +
-        lines[i - 1]);
+        lines[lines.length - 1]);
     }
 
     return comp;

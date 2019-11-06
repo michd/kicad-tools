@@ -1,21 +1,17 @@
 (function (global, SchematicComponent) {
-  // TODO: analze components:
-  // - Combine components with same reference and U n field (unit number within
-  //   component)
-  // - Analyze components for duplicates (where U n as well as reference is the
-  //   same). Log errors for those ones, but ensure it doesn't get flagged for
-  //   components missing a refNumber, as those have not been assigned yet.
   var Schematic = function(initText) {
     var originalLines = initText.match(/[^\r\n]+/g);
     var self = this; // Yeah binding and all. Or just, this one.
-    this.originalText = initText;
 
+    this.originalText = initText;
+    this.problems = [];
     this.components = [];
 
     // TODO: verify file header (make sure it starts in
     // "EESchema Schematic File Version \d"), throwing otherwise
 
     getComponentsFromLines();
+    analyzeComponents();
 
     console.log(
       "Schematic initialized with " + this.components.length + " components.");
@@ -37,21 +33,26 @@
       }
     }
 
+    function addDuplicateProblem(dupes) {
+      self.problems.push({
+        "type": "duplicateComponent",
+        "components": dupes
+      });
+    }
+
     // Iterates over all the lines and looks for strings that start and end
     // components. Collects the lines including start and end into a component
     // lines array, and then delegates to SchematicComponent.FromLines to
     // read the data contained in those lines into a structured object.
     function getComponentsFromLines() {
-      var lineCount = originalLines.length,
-          i = 0,
-          curCompLines = null;
+      var curCompLines = null;
 
-      while (i < lineCount) {
+      originalLines.forEach(function (line) {
         // If the current line starts a component,
         // first check if we had an ongoing component. If so, finish adding it,
         // even though it indicates a malformed file.
         // In either case, start a blank array for component lines.
-        if (originalLines[i] === "$Comp") {
+        if (line === "$Comp") {
           // Finish off an ongoing component
           if (curCompLines !== null) {
             // Started a new component while another one was ongoing
@@ -68,57 +69,81 @@
         // If we hit the end of it, create the component instance and add
         // it to the components array.
         if (curCompLines !== null) {
-          curCompLines.push(originalLines[i]);
+          curCompLines.push(line);
 
-          if (originalLines[i] === "$EndComp") {
+          if (line === "$EndComp") {
             buildAndAddComponent(curCompLines);
             curCompLines = null;
           }
         }
-
-        i++;
-      } // while
+      });
     } // function
-  }; // Schematic
 
-  // Returns true if function testFunc evaluates to true given any element in
-  // array arr.
-  function any(arr, testFunc) {
-    var i,
-        len = arr.length;
+    function analyzeComponents() {
+      var distinctComponentUnits = [],
+          dupeGroups = [];
 
-    for (i = 0; i < len; i++) {
-      if (testFunc(arr[i])) return true;
+      self.components.forEach(function(curComp) {
+        var dupeGroup;
+
+        var match = distinctComponentUnits.find(function (c) {
+          return componentUnitMatches(c, curComp);
+        });
+
+        if (!match) {
+          distinctComponentUnits.push(curComp);
+          return;
+        }
+
+        // Found a dupe!
+        match.hasProblem = true;
+        curComp.hasProblem = true;
+
+        dupeGroup = dupeGroups.find(function (grp) {
+          return componentUnitMatches(grp[0], curComp);
+        });
+
+        if (typeof dupeGroup === "undefined") {
+          dupeGroup = [match];
+          dupeGroups.push(dupeGroup);
+        }
+
+        dupeGroup.push(curComp);
+      });
+
+      dupeGroups.forEach(addDuplicateProblem);;
     }
 
-    return false;
+  }; // Schematic
+
+  function componentMatches(a, b) {
+    if (!a.hasDesignator() || !b.hasDesignator()) {
+      return false;
+    }
+
+    return a.reference === b.reference && a.unitNumber !== b.unitNumber;
+  }
+
+  function componentUnitMatches(a, b) {
+    if (!a.hasDesignator() || !b.hasDesignator()) {
+      return false;
+    }
+
+    return a.reference === b.reference && a.unitNumber === b.unitNumber;
   }
 
   // Returns all the distinct components, that is, filtering out duplicate
   // components for different units within the same device
   // e.g. opamps, logic gates, ...
   Schematic.prototype.getDistinctComponents = function () {
-    var filteredComponents = [],
-        i,
-        curComp,
-        len = this.components.length;
+    var filteredComponents = [];
 
-    function componentMatches(a, b) {
-      if (!a.hasDesignator() || !b.hasDesignator()) {
-        return false;
-      }
-
-      return a.reference === b.reference && a.unitNumber !== b.unitNumber;
-    }
-
-    for (i = 0; i < len; i++) {
-      curComp = this.components[i];
-
-      if (!any(filteredComponents,
-               function (comp) { return componentMatches(comp, curComp); })) {
+    this.components.forEach(function(curComp) {
+      if (!filteredComponents.some(function (comp) {
+            return componentMatches(comp, curComp); })) {
         filteredComponents.push(curComp);
       }
-    }
+    });
 
     return filteredComponents;
   };

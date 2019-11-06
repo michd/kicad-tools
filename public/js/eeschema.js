@@ -4,7 +4,10 @@
 
   var dropTarget = document.querySelector("#drop_target");
   var fileInput = dropTarget.querySelector("input[type=file]");
+  var schematicToolsSection = document.querySelector("#schematic_tools");
   var componentsSection = document.querySelector("#components");
+  var problemsSection = document.querySelector("#problems");
+  var problemsList = document.querySelector("#problems_list");
   var actionsSection = document.querySelector("#actions");
   var saveButton = document.querySelector("#save_schematic_button");
   var componentsTableBody = componentsSection.querySelector("tbody");
@@ -25,23 +28,76 @@
           .sort(SchematicComponent.MakeCompareFunction());
 
     populateTable(sortedComponents);
-    componentsSection.classList.remove("gone");
-    actionsSection.classList.remove("gone");
+    schematicToolsSection.classList.remove("gone");
+
+    if (schematic.problems.length > 0) {
+      printProblems(schematic.problems);
+      problemsSection.classList.remove("gone");
+    }
+
   }
 
   function populateTable(components) {
-    var i = 0,
+    var i,
         cCount = components.length,
         row;
 
-    while (i < cCount) {
+    for (i = 0; i < cCount; i++) {
       row = createComponentRow(components[i], i);
       componentsTableBody.appendChild(row);
 
+      row = componentsTableBody.lastElementChild;
+
       // Refer back to the index in list of components
-      componentsTableBody.lastElementChild.dataset.componentIndex = i;
-      i++;
+      // TODO: this index here is not longer a relevant identifier.
+      // Assign an index in initial schematic components array, and make it
+      // part of SchematicComponent.
+
+      row.dataset.componentIndex = i;
+
+      if (components[i].hasProblem) {
+        row.classList.add("has_problem");
+      }
     }
+  }
+
+  function componentToString(comp) {
+    var units = "ABCDEFGHIJLKMNOPQRSTUVWXYZ";
+
+    // "Rxx Unit B (value 100k)"
+    return comp.reference + " Unit " + units[comp.unitNumber - 1]
+      + " (value " + comp.value + ")";
+  }
+
+  function duplicateComponentProblemToString(problem) {
+    var str = "Duplicate component references: ",
+        compLen = problem.components.length,
+        componentStrings = problem.components.map(componentToString);
+
+    return str +
+      componentStrings.slice(0, compLen - 1).join(", ") +
+      (compLen > 2 ? "," : "") + // Get that Oxford comma
+      " and " + componentStrings[compLen - 1];
+  }
+
+  function problemToString(problem) {
+    switch (problem.type) {
+
+      case "duplicateComponent":
+        return duplicateComponentProblemToString(problem);
+
+      default:
+        return "";
+    }
+  }
+
+  function printProblems(problems) {
+    problems.forEach(function (problem) {
+      var li = document.createElement("li");
+      li.textContent = problemToString(problem);
+      problemsList.appendChild(li);
+
+    });
   }
 
   function createComponentRow(component) {

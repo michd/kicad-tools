@@ -4,6 +4,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: sans-serif;
+  background: #111;
+  color: #E5E5E5;
 }
 
 h1, h2, h3, h4, h5, h6, p {
@@ -33,13 +35,12 @@ section {
 }
 
 #drop_target:hover {
-  background: #CCC;
+  background: #333;
 }
 
 #drop_target input[type=file] {
   display: block;
   position: absolute;
-  background: #F00;
   top: 0;
   left: 0;
   width: 100%;
@@ -50,8 +51,8 @@ section {
 }
 
 #drop_target.dragover {
-  background: #AAA;
-  border: solid 5px #000;
+  background: #555
+  border: solid 5px #FFF;
 }
 
 #drop_target p {
@@ -66,6 +67,14 @@ section {
   z-index: 1;
 }
 
+#problems ol {
+  border-left: solid 5px #A00;
+}
+
+li {
+  margin-bottom: 1em;
+}
+
 table {
   padding: 0;
   border-collapse: collapse;
@@ -75,9 +84,10 @@ table {
 
 thead th {
   text-align: left;
-  padding: 0.125em 0.25em;
-  border-bottom: solid 3px #000;
-  border-left: solid 1px #AAA;
+  padding: 0.5em;
+  border-bottom: solid 3px #BBB;
+  border-left: solid 1px #555;
+  font-size: 90%;
 }
 
 thead th:first-child {
@@ -85,30 +95,31 @@ thead th:first-child {
 }
 
 tbody td {
-  padding: 0.125em 0.25em;
-  border-left: solid 1px #AAA;
-  border-bottom: solid 1px #AAA;
+  padding: 0.5em;
+  border-left: solid 1px #444;
   vertical-align: top;
+  font-size: 90%;
 }
 
 tbody td:first-child {
   border-left: none;
 }
 
+tbody tr.has_problem td {
+  background: #500;
+}
 
 tbody tr:nth-child(3n+1) {
-  background: #DDD;
+  background: #222;
 }
 
 tbody tr:nth-child(3n+2) {
-  background: #CCC;
+  background: #333;
 }
 
 tbody tr:hover {
-  background: #FFC;
+  background: #330;
 }
-
-
 
 
 #status_line {
@@ -116,8 +127,8 @@ tbody tr:hover {
   width: 100%;
   padding: 0.25em 2em;
   bottom: 0;
-  background: #EEE;
-  border-top: solid 1px #999;
+  background: #111;
+  border-top: solid 1px #666;
   margin-top: 20px;
   padding-top: 5px;
 }
@@ -125,4 +136,5 @@ tbody tr:hover {
 #status_line.error {
   color: #F00;
 }
+
 

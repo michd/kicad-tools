@@ -10,32 +10,51 @@
   <main>
     <h1>KiCad tools</h1>
     <p>Here are some tools to make tedious KiCad jobs easier.</p>
+
     <section id="drop_target">
       <input type="file" accept=".sch">
       <p>Select a KiCad schematic file or drop it here.</p>
     </section>
 
-    <section id="actions" class="gone">
-      <h2>Actions</h2>
-      <button id="save_schematic_button">Save schematic</button>
+    <section id="schematic_tools" class="gone">
+
+      <section id="actions">
+        <h2>Actions</h2>
+        <button id="save_schematic_button">Save schematic</button>
+      </section>
+
+      <section id="problems" class="gone">
+        <h2>Problems detected in schematic</h2>
+        <output>
+          <ol id="problems_list">
+          </ol>
+        </output>
+      </section>
+
+      <section id="components">
+        <h2>Components</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Ref</th>
+              <th>Value</th>
+              <th>Name</th>
+              <th>Footprint</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+
+      </section>
+
     </section>
-    <section id="components" class="gone">
-      <h2>Components</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Ref</th>
-            <th>Value</th>
-            <th>Name</th>
-            <th>Footprint</th>
-          </tr>
-        </thead>
-        <tbody>
-        </tbody>
-      </table>
-    </section>
+
   </main>
+
   <footer id="status_line">Ready.</footer>
+
   <template id="component_row">
     <tr>
       <td></td>
@@ -44,9 +63,11 @@
       <td></td>
     </tr>
   </template>
+
   <template id="save_link">
     <a href="" download style="display: none">
   </template>
+
   <script src="js/namespace.js"></script>
   <script src="js/schematic_component.js"></script>
   <script src="js/schematic.js"></script>

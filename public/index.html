@@ -25,10 +25,16 @@
 
       <section id="problems" class="gone">
         <h2>Problems detected in schematic</h2>
-        <output>
-          <ol id="problems_list">
-          </ol>
-        </output>
+        <table>
+          <thead>
+            <tr>
+              <th>Problem</th>
+              <th>Fix</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
       </section>
 
       <section id="components">
@@ -55,12 +61,43 @@
 
   <footer id="status_line">Ready.</footer>
 
+  <dialog id="multiple_choice_dialog">
+    <header>Title</header>
+
+    <div>
+      <div class="dialog_content"></div>
+      <form method="dialog">
+        <fieldset>
+          <label>
+            <input type="radio" name="fix_method" value="increment_all">
+            Increment each duplicate designator by one, shifting all components that come after
+          </label>
+          <label>
+            <input type="radio" name="fix_method" value="first_available">
+            Use first next available reference for duplicated components
+          </label>
+        </fieldset>
+        <menu>
+          <button value="cancel">Cancel</button>
+          <button value="confirm">Confirm</button>
+        </menu>
+      </form>
+    </div>
+  </dialog>
+
   <template id="component_row">
     <tr>
       <td></td>
       <td></td>
       <td></td>
       <td></td>
+    </tr>
+  </template>
+
+  <template id="problem_row">
+    <tr>
+      <td></td>
+      <td><button>Fix</button></td>
     </tr>
   </template>
 
@@ -71,6 +108,8 @@
   <script src="js/namespace.js"></script>
   <script src="js/schematic_component.js"></script>
   <script src="js/schematic.js"></script>
+  <script src="js/dialog.js"></script>
+  <script src="js/multiple_choice_dialog.js"></script>
   <script src="js/eeschema.js"></script>
 </body>
 </html>

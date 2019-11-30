@@ -25,6 +25,7 @@
 
         if (component !== null) {
           self.components.push(component);
+          component.componentIndex = self.components.length - 1;
         }
 
         curCompLines = null;

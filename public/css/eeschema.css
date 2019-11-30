@@ -137,4 +137,84 @@ tbody tr:hover {
   color: #F00;
 }
 
+dialog[open] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translateY(-50%) translateX(-50%);
+  margin: 0;
+  padding: 0;
+  box-shadow: 0 0 15px 15px #000, 0 0 15px 15px #000;
+  border: solid 1px #999;
+  outline: solid 1px #DDD;
+}
+
+/* Backdrop */
+dialog[open]::after {
+  position: absolute;
+  top: calc(50% - 50vh);
+  left: calc(50% - 50vw);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(60, 60, 60, 0.5);
+  content: ' ';
+  z-index: -1;
+}
+
+dialog > div {
+  padding: 1em;
+  background: #FFF;
+}
+
+dialog header {
+  background: #000;
+  color: #FFF;
+  font-weight: bold;
+  padding: 0.25em 1em;
+}
+
+dialog menu {
+  background: #DDD;
+  margin-left: -1em;
+  margin-right: -1em;
+  margin-bottom: -1em;
+  padding: 0.5em 1em;
+  text-align: right;
+  clear: both;
+}
+
+dialog menu button[value=cancel] {
+  float: left;
+}
+
+dialog menu button[value=confirm] {
+  font-weight: bold;
+}
+
+dialog fieldset {
+  border: none;
+  border-left: solid 1px #777;
+  padding: 0;
+}
+
+#multiple_choice_dialog label {
+  display: block;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  cursor: pointer;
+}
+
+#multiple_choice_dialog label:last-child {
+  margin-bottom: 0;
+}
+
+#multiple_choice_dialog input[type=radio] {
+  margin: 0;
+  margin-right: 0.5em;
+}
+
+#multiple_choice_dialog label:hover {
+  background: #DDD;
+}
+
 

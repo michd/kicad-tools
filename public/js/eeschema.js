@@ -1,17 +1,24 @@
 (function (global) {
   var SchematicComponent = global.EESCHEMA.SchematicComponent,
-      Schematic = global.EESCHEMA.Schematic;
+      Schematic = global.EESCHEMA.Schematic,
+      Dialog = global.EESCHEMA.Dialog,
+      MultipleChoiceDialog = global.EESCHEMA.MultipleChoiceDialog;
 
   var dropTarget = document.querySelector("#drop_target");
   var fileInput = dropTarget.querySelector("input[type=file]");
+
   var schematicToolsSection = document.querySelector("#schematic_tools");
   var componentsSection = document.querySelector("#components");
   var problemsSection = document.querySelector("#problems");
-  var problemsList = document.querySelector("#problems_list");
   var actionsSection = document.querySelector("#actions");
-  var saveButton = document.querySelector("#save_schematic_button");
+
+  var problemsTableBody = problemsSection.querySelector("tbody");
   var componentsTableBody = componentsSection.querySelector("tbody");
+
+  var saveButton = document.querySelector("#save_schematic_button");
+
   var statusLine = document.querySelector("#status_line");
+
   var schematic;
 
   // Entry point for the full text of the file
@@ -34,7 +41,6 @@
       printProblems(schematic.problems);
       problemsSection.classList.remove("gone");
     }
-
   }
 
   function populateTable(components) {
@@ -48,12 +54,7 @@
 
       row = componentsTableBody.lastElementChild;
 
-      // Refer back to the index in list of components
-      // TODO: this index here is not longer a relevant identifier.
-      // Assign an index in initial schematic components array, and make it
-      // part of SchematicComponent.
-
-      row.dataset.componentIndex = i;
+      row.dataset.componentIndex = components[i].componentIndex;
 
       if (components[i].hasProblem) {
         row.classList.add("has_problem");
@@ -91,12 +92,24 @@
     }
   }
 
+  function fixProblem() {
+    launchDuplicateFixDialog(this);
+  }
+
+  function createProblemRow(problem) {
+    var problemRowTemplate = document.querySelector("#problem_row");
+    var row = document.importNode(problemRowTemplate.content, true);
+    var cells = row.querySelectorAll("td");
+    var fixButton = row.querySelector("button");
+    cells[0].textContent = problemToString(problem);;
+    fixButton.addEventListener("click", fixProblem.bind(problem));
+    return row;
+  }
+
   function printProblems(problems) {
     problems.forEach(function (problem) {
-      var li = document.createElement("li");
-      li.textContent = problemToString(problem);
-      problemsList.appendChild(li);
-
+      var row = createProblemRow(problem);
+      problemsTableBody.appendChild(row);
     });
   }
 
@@ -109,6 +122,42 @@
     cells[2].textContent = component.componentName;
     cells[3].textContent = component.footprintName;
     return row;
+  }
+
+  // --------------------------------------------------------------------------
+  function launchDuplicateFixDialog(problem) {
+    var dialogContent = document.createElement("p");
+    dialogContent.append(problemToString(problem));
+    dialogContent.append(document.createElement("br"));
+    dialogContent.append(document.createElement("br"));
+    dialogContent.append("How would you like to fix this?");
+
+    var dialog = new MultipleChoiceDialog(
+      "Fix Duplicate components",
+      dialogContent,
+      [
+        {
+          "value": "increment_all",
+          "label": "Increment each duplicate designator by one, shifting all " +
+                     "components that come after"
+        },
+        {
+          "value": "next_available",
+          "label": "Use first next available reference for duplicated " +
+                     "components"
+        }
+      ]);
+
+
+    dialog.onsubmit = function (ev) {
+      console.log("submit event from dialog, data:", ev);
+    };
+
+    dialog.oncancel = function (ev) {
+      console.log("Cancel event from dialog");
+    };
+
+    dialog.showModal(true);
   }
 
   // --------------------------------------------------------------------------
@@ -185,5 +234,4 @@
     a.click();
     document.body.removeChild(a);
   });
-
 }(window));

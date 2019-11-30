@@ -1,5 +1,6 @@
 (function (global) {
   var SchematicComponent = function () {
+    this.componentIndex = null;
     this.lLine = null;
     this.uLine = null;
     this.pLine = null;

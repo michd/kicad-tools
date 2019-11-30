@@ -11,7 +11,7 @@
     // "EESchema Schematic File Version \d"), throwing otherwise
 
     getComponentsFromLines();
-    analyzeComponents();
+    this.analyzeComponents();
 
     console.log(
       "Schematic initialized with " + this.components.length + " components.");
@@ -32,13 +32,6 @@
       } catch (ex) {
         console.error(ex);
       }
-    }
-
-    function addDuplicateProblem(dupes) {
-      self.problems.push({
-        "type": "duplicateComponent",
-        "components": dupes
-      });
     }
 
     // Iterates over all the lines and looks for strings that start and end
@@ -79,42 +72,6 @@
         }
       });
     } // function
-
-    function analyzeComponents() {
-      var distinctComponentUnits = [],
-          dupeGroups = [];
-
-      self.components.forEach(function(curComp) {
-        var dupeGroup;
-
-        var match = distinctComponentUnits.find(function (c) {
-          return componentUnitMatches(c, curComp);
-        });
-
-        if (!match) {
-          distinctComponentUnits.push(curComp);
-          return;
-        }
-
-        // Found a dupe!
-        match.hasProblem = true;
-        curComp.hasProblem = true;
-
-        dupeGroup = dupeGroups.find(function (grp) {
-          return componentUnitMatches(grp[0], curComp);
-        });
-
-        if (typeof dupeGroup === "undefined") {
-          dupeGroup = [match];
-          dupeGroups.push(dupeGroup);
-        }
-
-        dupeGroup.push(curComp);
-      });
-
-      dupeGroups.forEach(addDuplicateProblem);;
-    }
-
   }; // Schematic
 
   function componentMatches(a, b) {
@@ -133,6 +90,94 @@
     return a.reference === b.reference && a.unitNumber === b.unitNumber;
   }
 
+  function fixDupeIncrementAll(problem) {
+    // TODO
+  }
+
+  function fixDupeNextAvailable(problem) {
+    problem.components.slice(1).forEach(function (c) {
+      var newRef = findNextAvailableRef.bind(this)(c.reference);
+      c.reference = newRef.reference;
+      c.refNumber = newRef.refNumber;
+    }.bind(this));
+
+    problem.components.forEach(function (c) { c.hasProblem = false; });
+  }
+
+  // Gets the next available reference and returns it as an object that
+  // SchematicComponent.ParseReference would return
+  function findNextAvailableRef(refStr) {
+    var parsedRef = SchematicComponent.ParseReference(refStr),
+        comps,
+        potentialNumber = parsedRef.refNumber + 1;
+
+    comps = this.components.filter(function (c) {
+      return c.refLetters === parsedRef.refLetters
+              && c.refNumber !== null
+              && c.refNumber >= parsedRef.refNumber;
+    });
+
+    function refTaken(n) {
+      return comps.some(function (c) {
+        return c.refNumber === n;
+      });
+    }
+
+    // Increment potential ref number until we find one that doesn't match
+    while (refTaken(potentialNumber)) potentialNumber++;
+
+    return {
+      "reference": parsedRef.refLetters + potentialNumber.toString(10),
+      "refLetters": parsedRef.refLetters,
+      "refNumber": potentialNumber
+    };
+  }
+
+  function addDuplicateProblem(dupes) {
+    this.problems.push({
+      "type": "duplicateComponent",
+      "components": dupes
+    });
+  }
+
+  Schematic.prototype.analyzeComponents = function () {
+    var distinctComponentUnits = [],
+        dupeGroups = [];
+
+    this.problems = [];
+
+    this.components.forEach(function(curComp) {
+      var dupeGroup;
+
+      var match = distinctComponentUnits.find(function (c) {
+        return componentUnitMatches(c, curComp);
+      });
+
+      if (!match) {
+        distinctComponentUnits.push(curComp);
+        return;
+      }
+
+      // Found a dupe!
+      match.hasProblem = true;
+      curComp.hasProblem = true;
+
+      dupeGroup = dupeGroups.find(function (grp) {
+        return componentUnitMatches(grp[0], curComp);
+      });
+
+      if (typeof dupeGroup === "undefined") {
+        dupeGroup = [match];
+        dupeGroups.push(dupeGroup);
+      }
+
+      dupeGroup.push(curComp);
+    });
+
+    dupeGroups.forEach(addDuplicateProblem.bind(this));
+  };
+
+
   // Returns all the distinct components, that is, filtering out duplicate
   // components for different units within the same device
   // e.g. opamps, logic gates, ...
@@ -149,6 +194,18 @@
     return filteredComponents;
   };
 
+  Schematic.prototype.fixDuplicateProblem = function (problem, strategy) {
+    switch (strategy) {
+      case Schematic.DUPE_FIX_STRATEGY_INCREMENT_ALL:
+        fixDupeIncrementAll.bind(this)(problem);
+        break;
+
+      case Schematic.DUPE_FIX_STRATEGY_NEXT_AVAILABLE:
+        fixDupeNextAvailable.bind(this)(problem);
+        break;
+    }
+  };
+
   // Builds a string to be served as a schematic file
   // TODO: actually regenerate the the schematic from dynamic data
   // rather than re-assembling original lines.
@@ -157,6 +214,9 @@
   Schematic.prototype.generateFile = function () {
     return this.originalText;
   };
+
+  Schematic.DUPE_FIX_STRATEGY_INCREMENT_ALL = "increment_all";
+  Schematic.DUPE_FIX_STRATEGY_NEXT_AVAILABLE = "next_available";
 
   global.EESCHEMA.Schematic = Schematic;
 }(window, window.EESCHEMA.SchematicComponent));

@@ -31,16 +31,39 @@
       writeErrorStatus(ex);
     }
 
+    updateComponents();
+    schematicToolsSection.classList.remove("gone");
+    updateProblems(schematic.problems);
+  }
+
+  function clear(container) {
+    while (container.hasChildNodes()) {
+      container.removeChild(container.lastChild);
+    }
+  }
+
+  function updateProblems(problems) {
+    clear(problemsTableBody);
+
+    if (problems.length === 0) {
+      problemsSection.classList.add("gone");
+      return;
+    }
+
+    printProblems(problems);
+
+    if (problems.length !== 0) {
+      problemsSection.classList.remove("gone");
+    }
+  }
+
+  function updateComponents(compontents) {
+    clear(componentsTableBody);
+
     var sortedComponents = schematic.getDistinctComponents()
           .sort(SchematicComponent.MakeCompareFunction());
 
     populateTable(sortedComponents);
-    schematicToolsSection.classList.remove("gone");
-
-    if (schematic.problems.length > 0) {
-      printProblems(schematic.problems);
-      problemsSection.classList.remove("gone");
-    }
   }
 
   function populateTable(components) {
@@ -137,12 +160,12 @@
       dialogContent,
       [
         {
-          "value": "increment_all",
+          "value": Schematic.DUPE_FIX_STRATEGY_INCREMENT_ALL,
           "label": "Increment each duplicate designator by one, shifting all " +
                      "components that come after"
         },
         {
-          "value": "next_available",
+          "value": Schematic.DUPE_FIX_STRATEGY_NEXT_AVAILABLE,
           "label": "Use first next available reference for duplicated " +
                      "components"
         }
@@ -150,7 +173,16 @@
 
 
     dialog.onsubmit = function (ev) {
-      console.log("submit event from dialog, data:", ev);
+      if (ev.choice) {
+        console.log(
+          "Telling schematic to fix problem using strategy: ", ev.choice);
+        schematic.fixDuplicateProblem(problem, ev.choice);
+        schematic.analyzeComponents();
+        updateComponents(schematic.components);
+        updateProblems(schematic.problems);
+      } else {
+        console.log("submit event from duplicate fix dialog, but no choice.");
+      }
     };
 
     dialog.oncancel = function (ev) {

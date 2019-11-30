@@ -63,19 +63,10 @@
   // Takes apart a component's reference into the letter portion and the
   // numeric portion, accounting for references that may still end in '?'.
   function processComponentReference(comp) {
-    var parts = comp.reference.match(/([A-Za-z]+)?(\d+|\?+)?/);
-    comp.refLetters = parts[1] || null;
-    comp.refNumber = parts[2] || null;
+    var parsedRef = SchematicComponent.ParseReference(comp.reference);
 
-    if (comp.refNumber !== null) {
-      comp.refNumber = parseInt(comp.refNumber, 10);
-
-      // If we couldn't parse it, we don't have a number as part of the ref;
-      // standardise to null.
-      if (isNaN(comp.refNumber)) {
-        comp.refNumber = null;
-      }
-    }
+    comp.refLetters = parsedRef.refLetters;
+    comp.refNumber = parsedRef.refNumber;
   }
 
   // Processes a single schematic file component line, assigning the data
@@ -204,6 +195,33 @@
     };
 
     return compare;
+  };
+
+  // Splits a string component reference into its letter(s) and number
+  // Returns an object containing "reference", "refLetters", and "refNumber".
+  // "reference" is the original reference as in refStr,
+  // "refLetters" is the letters portion of it,
+  // "refNumber" is the numeric portion parsed as an int, and can be null if no
+  //  number was specified (or it was '?')
+  SchematicComponent.ParseReference = function (refStr) {
+    var parts = refStr.match(/([A-Za-z]+)?(\d+|\?+)?/),
+        ref = {
+          "reference": refStr,
+          "refLetters": parts[1] || null,
+          "refNumber": parts[2] || null
+        };
+
+    if (ref.refNumber !== null) {
+      ref.refNumber = parseInt(ref.refNumber, 10);
+
+      // If we couldn't parse it, we don't have a number as part of the ref;
+      // standardise to null.
+      if (isNaN(ref.refNumber)) {
+        ref.refNumber = null;
+      }
+    }
+
+    return ref;
   };
 
   global.EESCHEMA.SchematicComponent = SchematicComponent;

@@ -1,7 +1,7 @@
 (function (global, SchematicComponent) {
-  var Schematic = function(initText) {
+  var Schematic = function(initText, filename) {
     var self = this; // Yeah binding and all. Or just, this one.
-
+    this.originalFilename = filename;
     this.originalText = initText;
     this.originalLines = initText.match(/[^\r\n]+/g);
     this.problems = [];

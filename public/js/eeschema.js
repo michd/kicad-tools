@@ -22,10 +22,10 @@
   var schematic;
 
   // Entry point for the full text of the file
-  function processFile(text) {
+  function processFile(text, filename) {
     // Load and process schematic file
     try {
-      schematic = new Schematic(text);
+      schematic = new Schematic(text, filename);
       dropTarget.classList.add("gone");
     } catch (ex) {
       writeErrorStatus(ex);
@@ -222,7 +222,7 @@
     var reader = new FileReader();
     reader.onload = function (e) {
       writeStatus("Read file");
-      processFile(e.target.result);
+      processFile(e.target.result, f.name);
       writeStatus("Processed file");
     }
 
@@ -260,7 +260,7 @@
       "href",
       "data:text/plain;charset=utf-8," 
         + encodeURIComponent(schematic.generateFile()));
-    a.setAttribute("download", "schematic.sch"); // TODO get orig filename?
+    a.setAttribute("download", schematic.originalFilename);
     a.style.display = "none";
     document.body.appendChild(a);
     a.click();

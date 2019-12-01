@@ -91,7 +91,16 @@
   }
 
   function fixDupeIncrementAll(problem) {
-    // TODO
+    reserveReferences.bind(this)(
+      problem.components[0].refLetters,
+      problem.components[0].refNumber + 1,
+      problem.components.length - 1);
+
+    problem.components.forEach(function (c, i) {
+      c.refNumber += i;
+      c.reference = c.refLetters + c.refNumber.toString(10);
+      c.hasProblem = false;
+    });
   }
 
   function fixDupeNextAvailable(problem) {
@@ -131,6 +140,23 @@
       "refLetters": parsedRef.refLetters,
       "refNumber": potentialNumber
     };
+  }
+
+  function reserveReferences(refLetters, startN, count) {
+    var comps;
+    count = (typeof count === "number") ? count : 1;
+    count = count > 0 ? count : 1;
+
+    comps = this.components.filter(function (c) {
+      return c.refLetters === refLetters
+              && c.refNumber !== null
+              && c.refNumber >= startN;
+    });
+
+    comps.forEach(function (c) {
+      c.refNumber += count;
+      c.reference = c.refLetters + c.refNumber.toString(10);
+    });
   }
 
   function addDuplicateProblem(dupes) {

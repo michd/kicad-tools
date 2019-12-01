@@ -190,7 +190,7 @@
           break;
 
         case '2': // footprint
-          comp.footprint = removeQuotes(field.text);
+          comp.footprint = field.text;
           comp.footprintLib = comp.footprint.split(':')[0];
           comp.footprintName = comp.footprint.split(':')[1];
           break;

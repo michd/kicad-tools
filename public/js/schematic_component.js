@@ -11,6 +11,7 @@
     this.refLetters = null;
     this.refNumber = null;
     this.value = null;
+    this.numericValue = null;
     this.footprint = null;
     this.footprintLib = null;
     this.footprintName = null;
@@ -185,6 +186,7 @@
 
         case '1': // value
           comp.value = field.text;
+          comp.numericValue = SchematicComponent.ValueToNumber(comp.value);
           break;
 
         case '2': // footprint
@@ -292,6 +294,38 @@
     }
 
     return ref;
+  };
+
+  SchematicComponent.ValueToNumber = function (strVal) {
+    // That character class are all SI prefixes
+    // (except those for deci, centi, deca, hecto, as they're not really used
+    // in electronics)
+    // for micro (μ), 'u' is also included as it's often used instead.
+    var matches = strVal.match(/^\s*(\d+)\s*([yzafpnμumkMGTPEZY])?.*/),
+        multipliers = {
+          'y': 1e-24,
+          'z': 1e-21,
+          'a': 1e-18,
+          'f': 1e-15,
+          'p': 1e-12,
+          'n': 1e-9,
+          'u': 1e-6,
+          'μ': 1e-6,
+          'm': 1e-3,
+          'k': 1e3,
+          'M': 1e6,
+          'G': 1e9,
+          'T': 1e12,
+          'P': 1e15,
+          'E': 1e18,
+          'Z': 1e21,
+          'Y': 1e24,
+          '1': 1 // Fallback
+        };
+
+    if (matches === null) return null;
+
+    return parseInt(matches[1], 10) * (multipliers[matches[2] || '1']);
   };
 
   global.EESCHEMA.SchematicComponent = SchematicComponent;

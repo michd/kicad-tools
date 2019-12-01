@@ -1,9 +1,9 @@
 (function (global, SchematicComponent) {
   var Schematic = function(initText) {
-    var originalLines = initText.match(/[^\r\n]+/g);
     var self = this; // Yeah binding and all. Or just, this one.
 
     this.originalText = initText;
+    this.originalLines = initText.match(/[^\r\n]+/g);
     this.problems = [];
     this.components = [];
 
@@ -41,7 +41,7 @@
     function getComponentsFromLines() {
       var curCompLines = null;
 
-      originalLines.forEach(function (line) {
+      self.originalLines.forEach(function (line) {
         // If the current line starts a component,
         // first check if we had an ongoing component. If so, finish adding it,
         // even though it indicates a malformed file.
@@ -232,13 +232,52 @@
     }
   };
 
-  // Builds a string to be served as a schematic file
-  // TODO: actually regenerate the the schematic from dynamic data
-  // rather than re-assembling original lines.
-  // Current implementation is just to establish saving a file from the page
-  // works as expected.
   Schematic.prototype.generateFile = function () {
-    return this.originalText;
+    var lines = [],
+        // TODO: detect line ending from original text, and re-use that.
+        newline = "\n",
+        compIndex = 0,
+        compLines = [],
+        inComponent = false;
+
+    // Iterate over original lines
+    this.originalLines.forEach(function (l) {
+      if (!inComponent && l !== "$Comp") {
+        lines.push(l);
+      } else {
+        if (l === "$Comp") {
+          inComponent = true;
+          compLines = [l];
+        } else {
+          compLines.push(l);
+
+          if (l === "$EndComp") {
+            // Component ended, try converting it to a SchematicComponent.
+            // This will return null if it's a pseudo component like a power
+            // flag.
+            if (SchematicComponent.FromLines(compLines) !== null) {
+              // If it's a component we're interested in,
+              // convert the matching (by index) potentially edited component
+              // to lines to replace the existing lines
+              lines = lines.concat(this.components[compIndex].buildLines());
+
+              // Increment component index indicating number of components
+              // we've replaced from the array.
+              compIndex++; 
+            } else {
+              // If it's a component we don't care about, copy in its lines
+              // as we found them.
+              lines = lines.concat(compLines);
+            }
+
+            inComponent = false;
+            compLines = [];
+          }
+        }
+      }
+    }.bind(this));
+
+    return lines.join(newline);
   };
 
   Schematic.DUPE_FIX_STRATEGY_INCREMENT_ALL = "increment_all";

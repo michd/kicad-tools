@@ -18,11 +18,72 @@
     this.unitTimestamp = null;
     this.fieldLines = [];
     this.fieldProps = [];
+    this.additionalLines = [];
     this.hasProblem = false;
   };
 
   SchematicComponent.prototype.hasDesignator = function () {
     return this.refNumber !== null;
+  };
+
+  SchematicComponent.prototype.buildLines = function () {
+    var lines = [];
+
+    this.lLine = buildLLine.bind(this)();
+
+    lines.push("$Comp");
+    lines.push(this.lLine);
+    lines.push(this.uLine);
+    lines.push(this.pLine);
+
+    this.fieldLines = buildFLines.bind(this)();
+
+    lines = lines.concat(this.fieldLines, this.additionalLines);
+
+    lines.push("$EndComp");
+
+    return lines;
+  };
+
+  function buildLLine() {
+    return "L " +
+      this.componentLib + ":" + this.componentName + " " +
+      this.reference;
+  }
+
+  function buildFLines() {
+    var fLines = [],
+        comp = this;
+
+    this.fieldProps.forEach(function (fp) {
+      var line;
+
+      if (fp.n === '0') {
+        fp.text = comp.reference;
+      }
+
+      line = [
+        "F",
+        fp.n,
+        addQuotes(fp.text),
+        fp.orientation,
+        fp.position.x,
+        fp.position.y,
+        fp.dimension,
+        "", // Additional space for some reason
+        fp.flags,
+        fp.hjustify,
+        [
+          fp.vjustifyAndFontStyle.vjustify,
+          fp.vjustifyAndFontStyle.styleItalic,
+          fp.vjustifyAndFontStyle.styleBold
+        ].join('')
+      ].join(' ');
+
+      fLines.push(line);
+    });
+
+    return fLines;
   }
 
   // Parse a single field line into it components
@@ -33,7 +94,7 @@
 
     return {
         "n": splitLine[1],
-        "text": splitLine[2],
+        "text": removeQuotes(splitLine[2]),
         "orientation": splitLine[3],
 
         "position": {
@@ -60,6 +121,10 @@
     return val.substr(1, val.length - 2);
   }
 
+  function addQuotes(val) {
+    return '"' + val + '"';
+  }
+
   // Takes apart a component's reference into the letter portion and the
   // numeric portion, accounting for references that may still end in '?'.
   function processComponentReference(comp) {
@@ -73,6 +138,8 @@
   // contained therein to relevant component fields
   function processComponentLine(comp, line) {
     var splitLine = line.split(' ');
+
+    if (line === "$Comp" || line === "$EndComp") return;
 
     switch (line[0]) {
       case 'L':
@@ -97,6 +164,9 @@
       case 'F':
         comp.fieldLines.push(line);
         break;
+
+      default:
+        comp.additionalLines.push(line);
     }
   }
 
@@ -114,7 +184,7 @@
           break;
 
         case '1': // value
-          comp.value = removeQuotes(field.text);
+          comp.value = field.text;
           break;
 
         case '2': // footprint

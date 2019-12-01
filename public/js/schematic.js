@@ -161,9 +161,122 @@
 
   function addDuplicateProblem(dupes) {
     this.problems.push({
-      "type": "duplicateComponent",
+      "type": Schematic.PROBLEM_TYPE_DUPLICATE,
       "components": dupes
     });
+  }
+
+  function annotate(groupSortFunc) {
+    var refLettersGroups = {},
+        key;
+
+    // Fix any problems before attempting to annotate
+    autoFixProblems.bind(this)();
+    this.analyzeComponents();
+
+    refLettersGroups = this.components.reduce(function(hash, comp) {
+      hash[comp.refLetters] = hash[comp.refLetters] || [];
+      hash[comp.refLetters].push(comp);
+      return hash;
+    }.bind(this), refLettersGroups);
+
+    // Now divide each group into value groups
+    for (key in refLettersGroups) {
+      if (!refLettersGroups.hasOwnProperty(key)) continue;
+
+      (function () { // Closure
+        var comps = refLettersGroups[key],
+            valGroups = {};
+
+        valGroups = comps.reduce(function(hash, comp) {
+          hash[comp.value] = hash[comp.value] || [];
+          hash[comp.value].push(comp);
+          return hash;
+        }, valGroups);
+
+        refLettersGroups[key] = valGroups;
+      }());
+    }
+
+    // Now we have refLettersGroups:
+    // {
+    //   "R": {
+    //     "100k": [c, c, c],
+    //     "10k": [c, c, c]
+    //   },
+    //   "C": {
+    //     "100n": [c, c, c],
+    //     "2.2n": [c, c]
+    //   }
+    //   // etc
+    // }
+
+    for (key in refLettersGroups) {
+      if (!refLettersGroups.hasOwnProperty(key)) continue;
+      annotateGroup.bind(this)(refLettersGroups[key], groupSortFunc);
+    }
+  }
+
+  function annotateGroup(group, groupSortFunc) {
+    var groupArr = global.Object.values(group);
+    var valueBuckets = [];
+    var n = 1;
+
+    groupArr.forEach(function (vGroup) {
+      var value = vGroup[0].value,
+          vArr = vGroup.slice(),
+          vBucket = [],
+          comp;
+
+      function getPartBucket(comp) {
+        var pBucket = vBucket.find(function(b) {
+          return b[0].reference === comp.reference &&
+            !b.some(function(c) { return c.unitNumber === comp.unitNumber; });
+        });
+
+        if (typeof pBucket !== "undefined") return pBucket;
+
+        pBucket = [];
+        vBucket.push(pBucket);
+        return pBucket;
+      }
+
+      while (vArr.length > 0) {
+        comp = vArr.pop(comp);
+        getPartBucket(comp).push(comp);
+      }
+
+      valueBuckets.push(vBucket);
+    });
+
+    // The sort function implements the annotation strategy
+    valueBuckets.sort(groupSortFunc);
+
+    // Assign actual numbers
+    valueBuckets.forEach(function (vb) {
+      // vb = list of components that share a value
+      vb.forEach(function (pb) {
+        // pb = list of components that are in the same part
+        pb.forEach(function (c) {
+          // c = a single (pseudo)component
+          c.refNumber = n;
+          c.reference = c.refLetters + c.refNumber.toString(10);
+        }); // pb
+
+        n++;
+      }); // vb
+    }); // valuebuckets
+  }
+
+  function autoFixProblems() {
+    this.problems.forEach(function (p) {
+      switch (p.type) {
+        case Schematic.PROBLEM_TYPE_DUPLICATE:
+          this.fixDuplicateProblem(
+            p, Schematic.DUPE_FIX_STRATEGY_INCREMENT_ALL);
+          break;
+      }
+    }.bind(this));
   }
 
   Schematic.prototype.analyzeComponents = function () {
@@ -232,6 +345,56 @@
     }
   };
 
+  Schematic.prototype.annotate = function (strategy) {
+    var comparisonFunc,
+        reverse = false;
+
+    switch (strategy) {
+      // Fallthroguh intentional. Both these options should use the same
+      // comparison function, but only in the former case should the variable
+      // in the closure "reverse" be set to true.
+      case Schematic.ANNOTATE_STRATEGY_MOST_COMMON_FIRST:
+        reverse = true;
+      case Schematic.ANNOTATE_STRATEGY_LEAST_COMMON_FIRST:
+        comparisonFunc = function (a, b) {
+          var c;
+
+          // Swap positions to reverse
+          if (reverse) { c = a; a = b; b = c; }
+
+          if (a.length < b.length) return -1;
+          if (a.length > b.length) return 1;
+          return 0;
+        };
+
+        break;
+
+      // Fallthroguh intentional. Both these options should use the same
+      // comparison function, but only in the former case should the variable
+      // in the closure "reverse" be set to true.
+      case Schematic.ANNOTATE_STRATEGY_HIGHEST_VALUE_FIRST:
+        reverse = true;
+      case Schematic.ANNOTATE_STRATEGY_LOWEST_VALUE_FIRST:
+        comparisonFunc = function (a, b) {
+          var c;
+
+          // Swap positions to reverse
+          if (reverse) { c = a; a = b; b = c; }
+
+          if (a[0][0].numericValue < b[0][0].numericValue) return -1;
+          if (a[0][0].numericValue > b[0][0].numericValue) return 1;
+          return 0;
+        };
+
+        break;
+
+      default: // No valid strategy, nothing to do
+        return;
+    }
+
+    annotate.bind(this)(comparisonFunc);
+  };
+
   Schematic.prototype.generateFile = function () {
     var lines = [],
         // TODO: detect line ending from original text, and re-use that.
@@ -280,8 +443,15 @@
     return lines.join(newline);
   };
 
+  Schematic.PROBLEM_TYPE_DUPLICATE = "duplicateComponent";
+
   Schematic.DUPE_FIX_STRATEGY_INCREMENT_ALL = "increment_all";
   Schematic.DUPE_FIX_STRATEGY_NEXT_AVAILABLE = "next_available";
+
+  Schematic.ANNOTATE_STRATEGY_MOST_COMMON_FIRST = "most_common_first";
+  Schematic.ANNOTATE_STRATEGY_LEAST_COMMON_FIRST = "least_common_first";
+  Schematic.ANNOTATE_STRATEGY_LOWEST_VALUE_FIRST = "lowest_value_first";
+  Schematic.ANNOTATE_STRATEGY_HIGHEST_VALUE_FIRST = "highest_value_first";
 
   global.EESCHEMA.Schematic = Schematic;
 }(window, window.EESCHEMA.SchematicComponent));

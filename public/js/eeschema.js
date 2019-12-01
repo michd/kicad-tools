@@ -16,6 +16,7 @@
   var componentsTableBody = componentsSection.querySelector("tbody");
 
   var saveButton = document.querySelector("#save_schematic_button");
+  var annotateButton = document.querySelector("#annotate_schematic_button");
 
   var statusLine = document.querySelector("#status_line");
 
@@ -107,7 +108,7 @@
   function problemToString(problem) {
     switch (problem.type) {
 
-      case "duplicateComponent":
+      case Schematic.PROBLEM_TYPE_DUPLICATE:
         return duplicateComponentProblemToString(problem);
 
       default:
@@ -124,7 +125,7 @@
     var row = document.importNode(problemRowTemplate.content, true);
     var cells = row.querySelectorAll("td");
     var fixButton = row.querySelector("button");
-    cells[0].textContent = problemToString(problem);;
+    cells[0].textContent = problemToString(problem);
     fixButton.addEventListener("click", fixProblem.bind(problem));
     return row;
   }
@@ -185,8 +186,55 @@
       }
     };
 
-    dialog.oncancel = function (ev) {
-      console.log("Cancel event from dialog");
+    dialog.showModal(true);
+  }
+
+  function launchAnnotateDialog() {
+    var dialogContent = document.createElement("p"),
+        dialog;
+
+    dialogContent.append(
+      "This action will overwrite all existing annotations.");
+    dialogContent.append(document.createElement("br"));
+    dialogContent.append(document.createElement("br"));
+    dialogContent.append(
+      "Please select a naming strategy. All naming strategies group components "
+      + "by equal value. For positional ordering, use EESchema."
+    );
+
+    dialog = new MultipleChoiceDialog(
+      "Annotate components",
+      dialogContent,
+      [
+        {
+          "label": "Most common value first",
+          "value": Schematic.ANNOTATE_STRATEGY_MOST_COMMON_FIRST
+        },
+        {
+          "label": "Least common value first",
+          "value": Schematic.ANNOTATE_STRATEGY_LEAST_COMMON_FIRST
+        },
+        {
+          "label": "Lowest value first",
+          "value": Schematic.ANNOTATE_STRATEGY_LOWEST_VALUE_FIRST
+        },
+        {
+          "label": "Highest value first",
+          "value": Schematic.ANNOTATE_STRATEGY_HIGHEST_VALUE_FIRST
+        }
+      ]);
+
+    dialog.onsubmit = function (ev) {
+      if (ev.choice) {
+        console.log(
+          "Telling schematic to annotate using strategy: ", ev.choice);
+        schematic.annotate(ev.choice);
+        schematic.analyzeComponents();
+        updateComponents(schematic.components);
+        updateProblems(schematic.problems);
+      } else {
+        console.log("Submit event from annotate dialog, but no choice.");
+      }
     };
 
     dialog.showModal(true);
@@ -266,4 +314,6 @@
     a.click();
     document.body.removeChild(a);
   });
+
+  annotateButton.addEventListener("click", launchAnnotateDialog);
 }(window));

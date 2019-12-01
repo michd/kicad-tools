@@ -301,7 +301,7 @@
     // (except those for deci, centi, deca, hecto, as they're not really used
     // in electronics)
     // for micro (μ), 'u' is also included as it's often used instead.
-    var matches = strVal.match(/^\s*(\d+)\s*([yzafpnμumkMGTPEZY])?.*/),
+    var matches = strVal.match(/^\s*([\d\.]+)\s*([yzafpnμumkMGTPEZY])?.*/),
         multipliers = {
           'y': 1e-24,
           'z': 1e-21,
